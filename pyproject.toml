@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "skill-score"
+version = "0.1.0"
+description = "Skill Score"
+authors = ["Parutin Maxim <parutin.ma@phystech.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">3.9.7"
+streamlit = "^1.29.0"
+st-pages = "^0.4.5"
+extra-streamlit-components = "^0.1.60"
+sqlalchemy = "^2.0.25"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
