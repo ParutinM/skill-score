@@ -5,12 +5,12 @@ from omegaconf import DictConfig
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.schema import CreateSchema
 from sqlalchemy_utils import database_exists, create_database
-from general_tables import Base
+from general_tables import Base, ServiceBase
 
 
 def create_db(cfg: DictConfig) -> None:
     # creates empty db if not exists
-    engine = create_engine(f"{cfg.driver}://{cfg.host}:{cfg.port}/{cfg.database.name}")
+    engine = create_engine(f"{cfg.driver}://{cfg.user}:{cfg.password}@{cfg.host}:{cfg.port}/{cfg.database.name}")
     if not database_exists(engine.url):
         create_database(engine.url)
 
@@ -23,6 +23,7 @@ def create_db(cfg: DictConfig) -> None:
 
     # create all tables
     Base.metadata.create_all(engine)
+    ServiceBase.metadata.create_all(engine)
     conn.close()
 
 

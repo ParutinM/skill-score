@@ -1,11 +1,8 @@
 import bcrypt
 import streamlit as st
 
-from time import sleep
-from sqlalchemy import select
+from sqlalchemy import select, Connection
 from sqlalchemy.orm import Session
-from st_pages import hide_pages
-from streamlit_extras.switch_page_button import switch_page
 
 from pages.auth.components import (email_input,
                                    region_school_input,
@@ -13,81 +10,60 @@ from pages.auth.components import (email_input,
                                    password_input,
                                    avatar_input,
                                    grade_input)
-from pages.utils import PagePath, get_manager, get_engine, is_auth
+from skill_score.utils import PagePath, WebPage
 from db.general_tables import User, School, StudentInfo
 
 
-def main():
-    # page configuration
-    st.set_page_config(
-        page_title="Регистрация",
-        page_icon="📝",
-        layout="centered",
-        initial_sidebar_state="collapsed"
-    )
+class RegistrationStudentPage(WebPage):
+    title = "Регистрация"
+    icon = "📝"
 
-    # hiding pages
-    hide_pages([_.name for _ in PagePath])
+    def _content(self, conn: Connection):
+        success_count = 0
 
-    # some sleep
-    sleep(0.1)
+        st.title("Регистрация в Skill Score 📚")
+        st.markdown("### Для учеников 🙋")
 
-    # num of succeed inputs
-    success_count = 0
+        first_name, last_name, birth_date, success_count = personal_info_input(success_count)
 
-    # SQLAlchemy engine
-    engine = get_engine()
+        email, success_count = email_input(conn, success_count)
 
-    # creating cookie manager
-    cookie_manager = get_manager()
+        region, school, success_count = region_school_input(conn, success_count)
 
-    # switch page if authorized
-    if is_auth(engine, cookie_manager):
-        switch_page(PagePath.home.name)
+        col1, col2 = st.columns([5, 2])
+        with col1:
+            grade, success_count = grade_input(success_count)
+            password, success_count = password_input(success_count)
 
-    # page components
-    st.title("Регистрация в Skill Score 📚")
-    st.markdown("### Для учеников 🙋")
+        with col2:
+            avatar, success_count = avatar_input(success_count)
+            if st.button("Завершить регистрацию", disabled=success_count != 8):
+                with Session(conn) as session:
+                    user = User(
+                        privelege_id=1,
+                        first_name=first_name,
+                        last_name=last_name,
+                        email=email,
+                        birth_date=birth_date,
+                        hashed_password=bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(),
+                        avatar=avatar,
+                        status=None
+                    )
+                    session.add(user)
+                    session.commit()
 
-    first_name, last_name, birth_date, success_count = personal_info_input(cookie_manager, success_count)
-
-    email, success_count = email_input(cookie_manager, engine, success_count)
-
-    region, school, success_count = region_school_input(engine, success_count)
-
-    col1, col2 = st.columns([5, 2])
-    with col1:
-        grade, success_count = grade_input(success_count)
-        password, success_count = password_input(success_count)
-
-    with col2:
-        avatar, success_count = avatar_input(success_count)
-        if st.button("Завершить регистрацию", disabled=success_count != 8):
-            with Session(engine) as session:
-                user = User(
-                    privilege_id=1,
-                    first_name=first_name,
-                    last_name=last_name,
-                    email=email,
-                    birth_date=birth_date,
-                    hashed_password=bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(),
-                    avatar=avatar,
-                    status=None
-                )
-                session.add(user)
-                session.commit()
-
-                student_info = StudentInfo(
-                    user_id=engine.connect().scalars(select(User.id).where(User.email == email)).all()[0],
-                    school_id=engine.connect().scalars(select(School.id).where(School.name == school)).all()[0],
-                    grade=grade
-                )
-                session.add(student_info)
-                session.commit()
-            switch_page(PagePath.registration_end.name)
-        if st.button("Вернуться на главную страницу"):
-            switch_page(PagePath.main.name)
+                    student_info = StudentInfo(
+                        user_id=conn.scalars(select(User.id).where(User.email == email)).all()[0],
+                        school_id=conn.scalars(select(School.id).where(School.name == school)).all()[0],
+                        grade=grade,
+                    )
+                    session.add(student_info)
+                    session.commit()
+                st.switch_page(PagePath.registration_end.value)
+            if st.button("Вернуться на главную страницу"):
+                st.switch_page(PagePath.main.value)
 
 
 if __name__ == "__main__":
-    main()
+    page = RegistrationStudentPage()
+    page.show()

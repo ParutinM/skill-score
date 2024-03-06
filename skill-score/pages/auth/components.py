@@ -7,28 +7,24 @@ from typing import Tuple
 
 import streamlit as st
 from dateutil.relativedelta import relativedelta
-from extra_streamlit_components.CookieManager import CookieManager
-from sqlalchemy import Engine, select
+from sqlalchemy import select, Connection
 
 from db.general_tables import User, Subject, School, Region
-from pages.utils import send_verification_code
+from skill_score.utils import send_verification_code
 
 
-def first_name_input(cookie_manager: CookieManager, success_count: int) -> Tuple[str | None, int]:
+def first_name_input(success_count: int) -> Tuple[str | None, int]:
     with st.container(border=True):
         cookie_name = "first_name"
 
         first_name = st.text_input(label="Имя",
-                                   value=cookie_manager.get(cookie_name),
+                                   value=st.session_state.get(cookie_name),
                                    placeholder="Иван",
                                    max_chars=15)
         if first_name:
-            if first_name != cookie_manager.get(cookie_name):
-                cookie_manager.set(
-                    cookie=cookie_name,
-                    val=first_name,
-                    key="registration"
-                )
+            if first_name != st.session_state.get(cookie_name):
+                st.session_state[cookie_name] = first_name
+                st.rerun()
             else:
                 if not re.fullmatch('[а-яА-Я]+', first_name):
                     st.error("Имя должно состоять из букв русского алфавита", icon="❌")
@@ -41,21 +37,18 @@ def first_name_input(cookie_manager: CookieManager, success_count: int) -> Tuple
     return first_name, success_count
 
 
-def last_name_input(cookie_manager: CookieManager, success_count: int) -> Tuple[str | None, int]:
+def last_name_input(success_count: int) -> Tuple[str | None, int]:
     with st.container(border=True):
         cookie_name = "last_name"
 
         last_name = st.text_input(label="Фамилия",
-                                  value=cookie_manager.get(cookie_name),
+                                  value=st.session_state.get(cookie_name),
                                   placeholder="Иванов",
                                   max_chars=15)
         if last_name:
-            if last_name != cookie_manager.get(cookie_name):
-                cookie_manager.set(
-                    cookie=cookie_name,
-                    val=last_name,
-                    key="registration"
-                )
+            if last_name != st.session_state.get(cookie_name):
+                st.session_state[cookie_name] = last_name
+                st.rerun()
             else:
                 if not re.fullmatch('[а-яА-Я]+', last_name):
                     st.error("Фамилия должна состоять из букв русского алфавита", icon="❌")
@@ -68,11 +61,11 @@ def last_name_input(cookie_manager: CookieManager, success_count: int) -> Tuple[
     return last_name, success_count
 
 
-def birth_date_input(cookie_manager: CookieManager, success_count: int) -> Tuple[str | None, int]:
+def birth_date_input(success_count: int) -> Tuple[str | None, int]:
     with st.container(border=True):
         cookie_name = "birth_date"
 
-        cookie_val = cookie_manager.get(cookie_name)
+        cookie_val = st.session_state.get(cookie_name)
         year, month, day = cookie_val.split(".")[::-1] if cookie_val else ("", "", "")
 
         if year.isnumeric() and month.isnumeric() and day.isnumeric():
@@ -85,12 +78,9 @@ def birth_date_input(cookie_manager: CookieManager, success_count: int) -> Tuple
                                    format="DD.MM.YYYY")
 
         if birth_date:
-            if birth_date.strftime("%d.%m.%Y") != cookie_manager.get(cookie_name):
-                cookie_manager.set(
-                    cookie=cookie_name,
-                    val=birth_date.strftime("%d.%m.%Y"),
-                    key="registration"
-                )
+            if birth_date.strftime("%d.%m.%Y") != st.session_state.get(cookie_name):
+                st.session_state[cookie_name] = birth_date.strftime("%d.%m.%Y")
+                st.rerun()
             else:
                 if birth_date > date.today() - relativedelta(years=18):
                     st.error("Вам должно быть больше 18 лет", icon="❌")
@@ -101,23 +91,22 @@ def birth_date_input(cookie_manager: CookieManager, success_count: int) -> Tuple
     return birth_date, success_count
 
 
-def personal_info_input(cookie_manager: CookieManager,
-                        success_count: int) -> Tuple[str | None, str | None, str | None, int]:
+def personal_info_input(success_count: int) -> Tuple[str | None, str | None, str | None, int]:
     col1, col2, col3 = st.columns([1, 1, 1])
 
     with col1:
-        first_name, success_count = first_name_input(cookie_manager, success_count)
+        first_name, success_count = first_name_input(success_count)
 
     with col2:
-        last_name, success_count = last_name_input(cookie_manager, success_count)
+        last_name, success_count = last_name_input(success_count)
 
     with col3:
-        birth_date, success_count = birth_date_input(cookie_manager, success_count)
+        birth_date, success_count = birth_date_input(success_count)
 
     return first_name, last_name, birth_date, success_count
 
 
-def email_input(cookie_manager: CookieManager, engine: Engine, success_count: int) -> Tuple[str | None, int]:
+def email_input(conn: Connection, success_count: int) -> Tuple[str | None, int]:
     if 'send_email' not in st.session_state:
         st.session_state.send_email = False
 
@@ -139,21 +128,18 @@ def email_input(cookie_manager: CookieManager, engine: Engine, success_count: in
             cookie_name = "email"
 
             email = st.text_input(label="Адрес электронной почты",
-                                  value=cookie_manager.get(cookie_name),
+                                  value=st.session_state.get(cookie_name),
                                   placeholder="example@test.com",
                                   disabled=st.session_state.verified_email,
                                   max_chars=30)
             if email:
-                if email != cookie_manager.get(cookie_name):
-                    cookie_manager.set(
-                        cookie=cookie_name,
-                        val=email,
-                        key="registration"
-                    )
+                if email != st.session_state.get(cookie_name):
+                    st.session_state[cookie_name] = email
+                    st.rerun()
                 else:
                     if not re.fullmatch(r'[0-9A-Za-z_.]+@[0-9A-Za-z_.]+.[0-9A-Za-z_]+', email):
                         st.error("Неверный формат email", icon="❌")
-                    elif len(engine.connect().scalars(select(User).where(User.email == email)).all()) != 0:
+                    elif len(conn.scalars(select(User).where(User.email == email)).all()) != 0:
                         st.error("Пользователь с таким email уже существует", icon="❌")
                     else:
                         st.success("Отлично!", icon="✅")
@@ -176,23 +162,13 @@ def email_input(cookie_manager: CookieManager, engine: Engine, success_count: in
                         st.session_state.generated_code = random.randint(10000, 99999)
                         send_verification_code(email, st.session_state.generated_code)
                         st.session_state.send_email = True
-                        cookie_manager.set(
-                            cookie=cookie_name,
-                            val=email,
-                            key="registration"
-                        )
-                        time.sleep(0.01)
+                        st.rerun()
                 else:
                     st.subheader('')
                     if st.button("Подтвердить код", disabled=st.session_state.verified_email):
                         if input_code == str(st.session_state.generated_code):
                             st.session_state.verified_email = True
-                            cookie_manager.set(
-                                cookie=cookie_name,
-                                val=email,
-                                key="registration"
-                            )
-                            time.sleep(0.01)
+                            st.rerun()
                 with col2:
                     if st.session_state.verified_email and st.session_state.send_email:
                         st.success("Почта подтверждена!", icon="✅")
@@ -208,12 +184,11 @@ def email_input(cookie_manager: CookieManager, engine: Engine, success_count: in
     return email, success_count
 
 
-def subject_input(engine: Engine, success_count: int) -> Tuple[str | None, int]:
+def subject_input(conn: Connection, success_count: int) -> Tuple[str | None, int]:
     with st.container(border=True):
         subject = st.selectbox(label="Предмет",
                                placeholder="Выберите предмет",
-                               options=engine.connect().scalars(
-                                   select(Subject.name)).all(),
+                               options=conn.scalars(select(Subject.name)).all(),
                                index=None)
         if subject:
             success_count += 1
@@ -233,14 +208,14 @@ def grade_input(success_count: int) -> Tuple[str | None, int]:
     return grade, success_count
 
 
-def region_school_input(engine: Engine, success_count: int) -> Tuple[str | None, str | None, int]:
+def region_school_input(conn: Connection, success_count: int) -> Tuple[str | None, str | None, int]:
     col1, col2 = st.columns([1, 2])
 
     with col1:
         with st.container(border=True):
             region = st.selectbox(label="Регион",
                                   placeholder="Выберите регион",
-                                  options=engine.connect().scalars(select(Region.name)).all(),
+                                  options=conn.scalars(select(Region.name)).all(),
                                   index=None)
             if region:
                 success_count += 1
@@ -249,7 +224,7 @@ def region_school_input(engine: Engine, success_count: int) -> Tuple[str | None,
         with st.container(border=True):
             school = st.selectbox(label="Школа",
                                   placeholder="Выберите школу",
-                                  options=engine.connect().scalars(
+                                  options=conn.scalars(
                                       select(School.name)
                                       .join(Region, School.region_id == Region.id)
                                       .where(Region.name == region)).all(),
