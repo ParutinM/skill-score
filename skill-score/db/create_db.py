@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import yaml
+import toml
 from omegaconf import DictConfig
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.schema import CreateSchema
@@ -10,24 +10,24 @@ from general_tables import Base, ServiceBase
 
 def create_db(cfg: DictConfig) -> None:
     # creates empty db if not exists
-    engine = create_engine(f"{cfg.driver}://{cfg.user}:{cfg.password}@{cfg.host}:{cfg.port}/{cfg.database.name}")
+    engine = create_engine(f"{cfg.dialect}://{cfg.username}:{cfg.password}@{cfg.host}:{cfg.port}/{cfg.database}")
     if not database_exists(engine.url):
         create_database(engine.url)
 
     conn = engine.connect()
 
     # creates schemas if not exists
-    for schema in cfg.database.schemas:
+    for schema in ['general', 'service']:
         conn.execute(CreateSchema(schema, if_not_exists=True))
         conn.commit()
 
     # create all tables
-    Base.metadata.create_all(engine)
+    # Base.metadata.create_all(engine)
     ServiceBase.metadata.create_all(engine)
     conn.close()
 
 
 if __name__ == "__main__":
-    with open(Path(__file__).parent / "config.yaml") as f:
-        cfg = DictConfig(yaml.safe_load(f))
-    create_db(cfg)
+    with open('../.streamlit/secrets.toml') as f:
+        cfg = DictConfig(toml.loads(f.read()))
+    create_db(cfg.connections.postgresql)
