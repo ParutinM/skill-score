@@ -142,7 +142,7 @@ class HomePage(Page):
         with st.container(border=True):
             st.subheader("6. Превью")
             task_widget(new_state)
-        # self.load_state.update(new_state)
+        self.load_state.update(new_state)
         st.divider()
         load_task(self.conn, new_state)
 
