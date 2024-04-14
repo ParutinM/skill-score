@@ -16,7 +16,6 @@ def rerun():
     st.session_state["rerun"] = True
 
 
-@st.experimental_fragment
 def get_tree(conn: Connection,
              subject_id: int,
              parent_id: int | None = None,
@@ -45,7 +44,6 @@ def get_tree(conn: Connection,
     return nodes
 
 
-@st.experimental_fragment
 def topic(tree: list[str | dict | sac.CasItem],
           label: str = "",
           multiple: bool = False):
@@ -55,7 +53,6 @@ def topic(tree: list[str | dict | sac.CasItem],
     return {"topics": [x.split("_")[0] for x in topics]}
 
 
-@st.experimental_fragment
 def resource(conn: Connection,
              init_source_type: str | None = None,
              init_source: str | None = None,
@@ -140,7 +137,6 @@ def resource(conn: Connection,
     }
 
 
-@st.experimental_fragment
 def task(init_task_name: str | None = "",
          init_task: str | None = "",
          init_symbols: dict[str, dict] | None = None):
@@ -222,7 +218,6 @@ def task(init_task_name: str | None = "",
     }
 
 
-@st.experimental_fragment
 def solution(init_solution: str | None = ""):
     if init_solution is None:
         init_solution = ""
@@ -255,7 +250,6 @@ def solution(init_solution: str | None = ""):
     }
 
 
-@st.experimental_fragment
 def ans_type(answer_types: list[str],
              init_answer_type: str | None = None):
     init_answer_type_index = answer_types.index(init_answer_type) if init_answer_type in answer_types else None
@@ -266,7 +260,6 @@ def ans_type(answer_types: list[str],
     return {"answer_type": answer_type}
 
 
-@st.experimental_fragment
 def answer(answer_types: list[str],
            init_answer_type: str | None = None,
            init_answer: str | float | None = "",
@@ -340,12 +333,10 @@ def answer(answer_types: list[str],
         }
 
 
-@st.experimental_fragment
 def task_view(state: dict):
     task_widget(state)
 
 
-@st.experimental_fragment
 def load_task(conn: Connection, state: dict):
     _, col, _ = st.columns([1, 2, 1])
     answer_type_id = conn.scalars(select(AnswerType.id)
