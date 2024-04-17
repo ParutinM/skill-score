@@ -315,9 +315,9 @@ def configure_save(conn: Connection, state: dict):
                 for topic in state.get("topics_to_delete", []):
                     subtopic = topic.split(' / ')[-1]
                     parent_topic = topic.split(' / ')[-2] if len(topic.split(' / ')) > 1 else None
-                    parent_id = conn.scalars(select(TopicTree.id).where(TopicTree.name == parent_topic)).one_or_none()
+                    parent_id = conn.scalars(select(TopicTree.id).where(TopicTree.name == parent_topic)).all()
                     session.query(TopicTree).filter(TopicTree.name == subtopic,
-                                                    TopicTree.parent_id == parent_id).delete()
+                                                    TopicTree.parent_id.in_(parent_id)).delete()
                 for source_type, sources in state.get("sources_to_delete", {}).items():
                     type_id = conn.scalars(select(TaskSourceType).where(TaskSourceType.name == source_type)).one()
                     for source in sources:
