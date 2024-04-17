@@ -336,11 +336,20 @@ def configure_save(conn: Connection, state: dict):
                 for topic in state.get("topics_to_add", []):
                     parts = topic.split(' / ')
                     child = parts[-1]
-                    if len(parts) > 1:
+                    if len(parts) > 2:
                         parent = parts[-2]
+                        parent_parent = parts[-2]
+                    elif len(parts) == 2:
+                        parent = parts[-2]
+                        parent_parent = None
                     else:
                         parent = None
-                    parent_id = conn.scalars(select(TopicTree.id).where(TopicTree.name == parent)).one_or_none()
+                        parent_parent = None
+                    parent_parent_id = conn.scalars(select(TopicTree.id)
+                                                    .where(TopicTree.name == parent_parent)).one_or_none()
+                    parent_id = conn.scalars(select(TopicTree.id)
+                                             .where(TopicTree.name == parent,
+                                                    TopicTree.parent_id == parent_parent_id)).one_or_none()
                     session.add(TopicTree(subject_id=state.get("subject_id"),
                                           name=child,
                                           parent_id=parent_id))
