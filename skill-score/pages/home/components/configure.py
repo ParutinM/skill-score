@@ -316,6 +316,8 @@ def configure_save(conn: Connection, state: dict):
                     subtopic = topic.split(' / ')[-1]
                     parent_topic = topic.split(' / ')[-2] if len(topic.split(' / ')) > 1 else None
                     parent_id = conn.scalars(select(TopicTree.id).where(TopicTree.name == parent_topic)).all()
+                    if len(parent_id) == 0:
+                        parent_id = [None]
                     session.query(TopicTree).filter(TopicTree.name == subtopic,
                                                     TopicTree.parent_id.in_(parent_id)).delete()
                 for source_type, sources in state.get("sources_to_delete", {}).items():
@@ -347,6 +349,8 @@ def configure_save(conn: Connection, state: dict):
                         parent_parent = None
                     parent_parent_id = conn.scalars(select(TopicTree.id)
                                                     .where(TopicTree.name == parent_parent)).all()
+                    if len(parent_parent_id) == 0:
+                        parent_parent_id = [None]
                     parent_id = conn.scalars(select(TopicTree.id)
                                              .where(TopicTree.name == parent,
                                                     TopicTree.parent_id.in_(parent_parent_id))).one_or_none()
