@@ -346,10 +346,10 @@ def configure_save(conn: Connection, state: dict):
                         parent = None
                         parent_parent = None
                     parent_parent_id = conn.scalars(select(TopicTree.id)
-                                                    .where(TopicTree.name == parent_parent)).one_or_none()
+                                                    .where(TopicTree.name == parent_parent)).all()
                     parent_id = conn.scalars(select(TopicTree.id)
                                              .where(TopicTree.name == parent,
-                                                    TopicTree.parent_id == parent_parent_id)).one_or_none()
+                                                    TopicTree.parent_id.in_(parent_parent_id))).one_or_none()
                     session.add(TopicTree(subject_id=state.get("subject_id"),
                                           name=child,
                                           parent_id=parent_id))
